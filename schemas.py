@@ -57,56 +57,23 @@ class ItemCreateSchema(Schema):
     discount_price = fields.Float(load_default=None, allow_none=True)
     store_id = fields.Int(required=True)
 
-    # ----------------------------------------------------------
-    # TODO 3: Security Validation — Trim whitespace, reject blanks
-    #
-    #   Step A: Add a @pre_load method that strips leading/trailing
-    #           whitespace from "name" BEFORE validation runs.
-    #
-    #   Step B: Add a @validates("name") method that rejects
-    #           names that are empty after stripping.
-    #
-    #   Important: Both methods need **kwargs in the signature.
-    #
-    #   Template:
-    #
-    #       @pre_load
-    #       def strip_name(self, data, **kwargs):
-    #           # modify data["name"] here
-    #           return data  # must return data!
-    #
-    #       @validates("name")
-    #       def reject_blank_name(self, value, **kwargs):
-    #           # check value here
-    #           # raise ValidationError("Name cannot be blank.")
-    #           pass
-    #
-    #   Test: {"name": "   ", "price": 5, "store_id": 1}
-    #         should fail with 422
-    #
-    #   Test: {"name": "  Laptop  ", ...}
-    #         should succeed with name trimmed to "Laptop"
-    # ----------------------------------------------------------
+    @pre_load
+    def strip_name(self, data, **kwargs):
+        if "name" in data and isinstance(data["name"], str):
+            data["name"] = data["name"].strip()
+        return data
 
-    # ----------------------------------------------------------
-    # TODO 2: Cross-Field Validation — discount_price <= price
-    #
-    #   If discount_price is provided (not None), it must be
-    #   less than or equal to price.
-    #
-    #   Use @validates_schema because you need access to BOTH
-    #   fields at once. A single-field @validates only sees
-    #   one value.
-    #
-    #   Template:
-    #
-    #       @validates_schema
-    #       def check_discount(self, data, **kwargs):
-    #           discount = data.get("discount_price")
-    #           price = data.get("price")
-    #           # compare them here
-    #           # raise ValidationError("Discount price cannot exceed regular price.")
-    #
-    #   Test: {"name": "Mouse", "price": 50, "discount_price": 100, "store_id": 1}
-    #         should fail with 422
-    # ----------------------------------------------------------
+    @validates("name")
+    def reject_blank_name(self, value, **kwargs):
+        if value == "":
+            raise ValidationError("Name cannot be blank.")
+
+    @validates_schema
+    def check_discount(self, data, **kwargs):
+        discount = data.get("discount_price")
+        price = data.get("price")
+
+        if discount is not None and price is not None and discount > price:
+            raise ValidationError(
+                "Discount price cannot exceed regular price."
+            )

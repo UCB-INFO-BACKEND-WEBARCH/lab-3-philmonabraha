@@ -83,6 +83,7 @@ class ItemList(MethodView):
         """List all items."""
         return items
 
+
     @items_blp.arguments(ItemCreateSchema)
     @items_blp.response(201, ItemSchema)
     def post(self, item_data):
@@ -102,34 +103,16 @@ class ItemList(MethodView):
         """
         global next_item_id
 
-        # --------------------------------------------------
         # TODO 1: Business Validation — Store must exist
-        #
-        #   Check if item_data["store_id"] refers to a real
-        #   store. If not, reject the request.
-        #
-        #   Use: store_exists() helper function
-        #   Use: abort(404, message="Store not found.")
-        #
-        #   Test: {"name": "Ghost", "price": 5, "store_id": 999}
-        #         should return 404
-        # --------------------------------------------------
+        if not store_exists(item_data["store_id"]):
+            abort(404, message="Store not found.")
 
-        # --------------------------------------------------
         # TODO 4: Data Integrity — No duplicate names per store
-        #
-        #   Two items in the SAME store cannot have the same
-        #   name (case-insensitive). Same name in a DIFFERENT
-        #   store is fine.
-        #
-        #   Use: duplicate_name_in_store() helper function
-        #   Use: abort(409, message="An item with this name already exists in this store.")
-        #
-        #   Test: Create "Laptop" in store 1, then try to
-        #         create "Laptop" in store 1 again → 409
-        #   Test: Create "Laptop" in store 1, then
-        #         create "Laptop" in store 2 → 201 (OK)
-        # --------------------------------------------------
+        if duplicate_name_in_store(item_data["name"], item_data["store_id"]):
+            abort(
+                409,
+                message="An item with this name already exists in this store."
+            )
 
         new_item = {
             "id": next_item_id,
@@ -142,6 +125,8 @@ class ItemList(MethodView):
         next_item_id += 1
 
         return new_item
+
+
 
 
 # ============================================================
